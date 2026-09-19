@@ -29,7 +29,10 @@ class Browser:
         deadline = time.monotonic() + 15
         while time.monotonic() < deadline:
             try:
-                if self.evaluate("document.readyState") == "complete":
+                # The target starts on about:blank, which is already readyState
+                # "complete" before Page.navigate's effects land - the first poll
+                # can otherwise return immediately against that stale document.
+                if self.evaluate("document.readyState === 'complete' && document.URL !== 'about:blank'"):
                     break
             except StalePage:
                 # Page.navigate destroys the about:blank context. Keep polling.
