@@ -28,6 +28,9 @@ def post_json(url, key, body):
                 detail = data["error"]
                 detail = detail.get("message", detail) if isinstance(detail, dict) else detail
                 failure = RuntimeError(f"Model provider returned an error: {detail}")
+            elif response.is_error and response.status_code not in {429, 529, 503} and response.status_code < 500:
+                # A permanent client-side rejection (auth, bad model name): retrying cannot help.
+                raise RuntimeError(f"Model provider returned HTTP {response.status_code}; no action executed.")
             elif response.is_error:
                 failure = RuntimeError(f"Model provider returned HTTP {response.status_code}; no action executed.")
             else:
@@ -215,7 +218,7 @@ def field_text(context):
                 "latency_ms": round((time.perf_counter() - started) * 1000),
                 "usage": result.get("usage", {}),
             }
-        except (ValueError, KeyError, TypeError):
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError):
             failure = ValueError(
                 f"Text helper returned no valid field value; nothing typed. Response: {repr(result)[:300]}"
             )
