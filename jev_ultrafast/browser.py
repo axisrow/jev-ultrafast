@@ -110,8 +110,11 @@ class Browser:
         if self.target:
             try:
                 cdp("Target.closeTarget", targetId=self.target)
-            except Exception:
-                pass  # The tab already went away; that is the state close() wants.
+            except (RuntimeError, OSError):
+                # RuntimeError: the tab already went away - close() wanted exactly
+                # that. OSError: the daemon is down, and the next Agent() revives
+                # it. Anything else is unexpected and must surface.
+                pass
             self.target = None
 
 
